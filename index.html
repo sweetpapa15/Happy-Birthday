@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bloom — a 30-day growing flower</title>
+<style>
+  :root{
+    --bg: #f8fbf7;
+    --accent: #d94b4b;
+    --leaf: #2f7a49;
+    --stem: #2b6a3c;
+    --pot: #b98b63;
+    --text: #20323a;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg,#ffffff 0%,var(--bg) 100%);
+    color:var(--text);padding:24px;
+  }
+
+  .card{
+    width:100%;max-width:920px;background:#fff;border-radius:14px;
+    box-shadow:0 10px 30px rgba(16,32,40,0.08);padding:22px;
+    display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:center;
+  }
+
+  @media (max-width:900px){ .card{grid-template-columns:1fr;}}
+  h1{margin:0 0 8px;font-size:20px;}
+  p.lead{margin:0 0 12px;color:#4b6470}
+
+  .stageBox{
+    background:linear-gradient(180deg, #fcfffc, #f1faf3);
+    border-radius:10px;padding:18px;display:flex;flex-direction:column;align-items:center;
+  }
+
+  /* SVG container */
+  .garden{
+    width:100%;height:420px;display:flex;align-items:center;justify-content:center;
+  }
+  svg{max-width:100%;height:100%}
+  .info{
+    padding:10px;
+  }
+
+  .panel{
+    padding:12px;background:#fbfcfd;border-radius:10px;border:1px solid rgba(32,50,60,0.04);
+  }
+  label{display:block;font-size:13px;margin-bottom:6px;color:#425b60}
+  input[type=date], .btn, .simButtons .btn{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(32,50,60,0.08);font-size:14px}
+  .row{display:flex;gap:8px}
+  .muted{font-size:13px;color:#6f8b8f;margin-top:8px}
+
+  .progressBar{
+    height:12px;border-radius:999px;background:linear-gradient(90deg,#e6f3ea,#f4f9f6);
+    overflow:hidden;margin-top:12px;
+  }
+  .progressFill{
+    height:100%;width:0%;background:linear-gradient(90deg,var(--leaf), #7ad08a);transition:width 900ms ease;
+  }
+
+  .meta{font-size:13px;color:#3a5a5f;margin-top:10px}
+  .btn{background:linear-gradient(180deg,#ffffff,#f6f7f8);border:1px solid rgba(32,50,60,0.06);cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,var(--accent),#c33b3b);color:white;border:0}
+  .simButtons{display:flex;gap:8px;margin-top:8px}
+  .small{font-size:13px;padding:8px;border-radius:8px}
+
+  footer{font-size:12px;color:#678792;margin-top:14px}
+
+  /* subtle animation for daily bloom pop */
+  .bloom-pop{
+    transition:transform 650ms cubic-bezier(.2,.9,.3,1), opacity 650ms ease;
+    transform-origin:center bottom;
+  }
+
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <h1>Happy Birthday Bloom</h1>
+        <div style="font-size:13px;color:#6a8a8f">30-day growing surprise</div>
+      </div>
+      <p class="lead">A little digital seed that grows every day for 30 days. Set the start date to your sister's birthday and share the link — each new day she'll see it grow a bit more.</p>
+
+      <div class="stageBox">
+        <div class="garden" aria-hidden="false">
+          <!-- SVG plant: stem, leaves, bud, petals. Scales with JS via --growth CSS variable -->
+          <svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" id="plantSVG">
+            <!-- ground / pot -->
+            <rect x="0" y="320" width="360" height="40" fill="#fafafa" />
+            <g id="pot" transform="translate(140,300)">
+              <rect x="-40" y="8" width="120" height="18" rx="6" fill="var(--pot)"></rect>
+              <rect x="0" y="-4" width="40" height="12" rx="4" fill="#c9a07a"></rect>
+            </g>
+
+            <!-- stem group that grows height -->
+            <g id="stemGroup" transform="translate(180,320)">
+              <!-- stem path, will scaleY by JS -->
+              <path id="stem" d="M0,0 C0,-20 2,-80 8,-140 C14,-200 22,-220 22,-260" stroke="var(--stem)" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+
+              <!-- left leaf -->
+              <g id="leafLeft" class="bloom-pop" transform="translate(-6,-120) rotate(-28)">
+                <path d="M0,0 C-24,-2 -46,28 -24,52 C2,76 46,28 12,8 C-4,0 0,0 0,0Z" fill="var(--leaf)" opacity="0.0"></path>
+              </g>
+
+              <!-- right leaf -->
+              <g id="leafRight" class="bloom-pop" transform="translate(16,-160) rotate(30)">
+                <path d="M0,0 C-24,-2 -46,28 -24,52 C2,76 46,28 12,8 C-4,0 0,0 0,0Z" fill="var(--leaf)" opacity="0.0"></path>
+              </g>
+
+              <!-- bud (grows then petals appear) -->
+              <g id="budGroup" transform="translate(0,-260)" >
+                <!-- small bud / seed -->
+                <ellipse id="seed" cx="0" cy="0" rx="8" ry="6" fill="#8b5a3c" opacity="1"></ellipse>
+
+                <!-- petals: 6 petals rotated around -->
+                <g id="petals" opacity="0" transform="scale(0.2)">
+                  <g id="petal1" transform="rotate(0)">
+                    <path d="M0,-6 C10,-2 14,6 4,12 C-6,18 -12,10 -6,2 C-2,-2 0,-6 0,-6Z" fill="#ff6b6b"></path>
+                  </g>
+                  <g id="petal2" transform="rotate(60)">
+                    <path d="M0,-6 C10,-2 14,6 4,12 C-6,18 -12,10 -6,2 C-2,-2 0,-6 0,-6Z" fill="#ff6b6b"></path>
+                  </g>
+                  <g id="petal3" transform="rotate(120)">
+                    <path d="M0,-6 C10,-2 14,6 4,12 C-6,18 -12,10 -6,2 C-2,-2 0,-6 0,-6Z" fill="#ff6b6b"></path>
+                  </g>
+                  <g id="petal4" transform="rotate(180)">
+                    <path d="M0,-6 C10,-2 14,6 4,12 C-6,18 -12,10 -6,2 C-2,-2 0,-6 0,-6Z" fill="#ffd6d6"></path>
+                  </g>
+                  <g id="petal5" transform="rotate(240)">
+                    <path d="M0,-6 C10,-2 14,6 4,12 C-6,18 -12,10 -6,2 C-2,-2 0,-6 0,-6Z" fill="#ffd6d6"></path>
+                  </g>
+                  <g id="petal6" transform="rotate(300)">
+                    <path d="M0,-6 C10,-2 14,6 4,12 C-6,18 -12,10 -6,2 C-2,-2 0,-6 0,-6Z" fill="#ff9aa2"></path>
+                  </g>
+                </g>
+
+                <!-- center -->
+                <circle id="center" cx="0" cy="0" r="0" fill="#ffc857" opacity="0"></circle>
+              </g>
+
+            </g>
+          </svg>
+        </div>
+
+        <div class="info" style="width:100%">
+          <div class="panel">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <strong id="dayLabel">Day 0</strong>
+                <div class="muted" id="descLabel">Seed — the adventure begins</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:11px;color:#5f7b7f">Progress</div>
+                <div class="progressBar" aria-hidden="true">
+                  <div class="progressFill" id="progressFill" style="width:0%"></div>
+                </div>
+                <div class="meta" id="dateMeta"></div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <div style="flex:1">
+                <label for="startDate">Start date (day 0)</label>
+                <input type="date" id="startDate" aria-label="Start date"/>
+              </div>
+              <div style="width:120px">
+                <label>&nbsp;</label>
+                <button class="btn primary" id="saveDate">Set</button>
+              </div>
+            </div>
+
+            <div style="margin-top:10px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <div style="flex:1">
+                  <div style="font-size:13px;color:#425b60">Preview / test</div>
+                  <div class="muted">Use these to simulate growth while testing.</div>
+                </div>
+                <div class="simButtons">
+                  <button class="btn small" id="prevDay">Prev</button>
+                  <button class="btn small" id="nextDay">Next</button>
+                  <button class="btn small" id="resetBtn">Reset</button>
+                </div>
+              </div>
+            </div>
+
+            <footer>Tip: Set the start date to your sister's birthday (default: Aug 16, 2025). Share the GitHub Pages link — she doesn't need an account to view it.</footer>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <aside>
+      <div class="panel">
+        <h3 style="margin:0 0 8px 0">Share & customize</h3>
+        <p style="margin:0 0 10px" class="muted">Upload this file to your repo root and enable GitHub Pages (branch main, /root). Link looks like <code>https://yourusername.github.io/reponame</code></p>
+
+        <strong>Style tips</strong>
+        <ul style="margin:8px 0 0 18px;padding:0;color:#3b5960">
+          <li>Change petal colors in the SVG fill attributes.</li>
+          <li>Replace the pot or add background images by editing the SVG.</li>
+          <li>Want it private? Keep repo private and share via Netlify or use GitHub Pages with a private repo + special settings (advanced).</li>
+        </ul>
+
+        <div style="margin-top:10px">
+          <div style="font-size:13px;color:#425b60">Quick checklist</div>
+          <ol style="margin:6px 0 0 18px;color:#3b5960">
+            <li>Upload <code>index.html</code> to repo root</li>
+            <li>Enable GitHub Pages → branch: <code>main</code> → /root</li>
+            <li>Copy the provided link and send to your sister</li>
+          </ol>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+<script>
+/*
+  Bloom 30-day growth script
+  - defaultStartDate: change if you want
+  - Logic: dayIndex = clamp(daysBetween(startDate, today), 0, 30)
+*/
+(function(){
+  const DEFAULT_START = '2025-08-16'; // change if you prefer
+  const MAX_DAYS = 30;
+
+  const startInput = document.getElementById('startDate');
+  const saveBtn = document.getElementById('saveDate');
+  const dayLabel = document.getElementById('dayLabel');
+  const descLabel = document.getElementById('descLabel');
+  const progressFill = document.getElementById('progressFill');
+  const dateMeta = document.getElementById('dateMeta');
+
+  const prevDayBtn = document.getElementById('prevDay');
+  const nextDayBtn = document.getElementById('nextDay');
+  const resetBtn = document.getElementById('resetBtn');
+
+  // elements to control
+  const stem = document.getElementById('stem');
+  const leafL = document.querySelector('#leafLeft path');
+  const leafR = document.querySelector('#leafRight path');
+  const petals = document.getElementById('petals');
+  const center = document.getElementById('center');
+  const seed = document.getElementById('seed');
+  const leafLeftGroup = document.getElementById('leafLeft');
+  const leafRightGroup = document.getElementById('leafRight');
+
+  // load saved startDate (localStorage) else default
+  function loadStartDate(){
+    const save = localStorage.getItem('bloom_start');
+    return save ? save : DEFAULT_START;
+  }
+
+  function saveStartDate(val){
+    localStorage.setItem('bloom_start', val);
+  }
+
+  // parse date string like "2025-08-16"
+  function toDateYMD(str){
+    const [y,m,d] = str.split('-').map(Number);
+    return new Date(Date.UTC(y, m-1, d)); // use UTC to avoid timezone shifts
+  }
+
+  // compute days between two dates (UTC)
+  function daysBetweenUTC(start, end){
+    const msPerDay = 24*60*60*1000;
+    const s = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+    const e = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
+    return Math.floor((e - s) / msPerDay);
+  }
+
+  // update visuals given dayIndex 0..30
+  function updateVisuals(dayIndex){
+    const growth = Math.max(0, Math.min(1, dayIndex / MAX_DAYS)); // 0..1
+    // labels
+    dayLabel.textContent = `Day ${dayIndex} / ${MAX_DAYS}`;
+    const stages = [
+      "Seed — the adventure begins",
+      "Tiny sprout — first peek",
+      "Sprout — breaking soil",
+      "Growing stem",
+      "Leaves forming",
+      "Leaves spreading",
+      "Stem growing",
+      "Leaf veins appearing",
+      "Bud forming",
+      "Bud tightening",
+      "Bud growing",
+      "Bud fuller",
+      "Small petal hints",
+      "Petal color showing",
+      "Petals softening",
+      "Early bloom",
+      "Blooming more",
+      "Petal spread",
+      "Bright center forming",
+      "Half-bloom",
+      "Mostly open",
+      "Lush leaves",
+      "Fragrant breeze",
+      "Almost full",
+      "Nearly there",
+      "Almost perfect",
+      "Full petals",
+      "Center golden",
+      "Radiant",
+      "Full bloom — happy birthday!"
+    ];
+    descLabel.textContent = stages[ Math.min(dayIndex, stages.length-1) ];
+    progressFill.style.width = `${Math.round(growth*100)}%`;
+
+    const today = new Date();
+    const startDate = toDateYMD(localStorage.getItem('bloom_start') || DEFAULT_START);
+    dateMeta.textContent = `Start: ${startDate.toISOString().slice(0,10)} · Today: ${today.toISOString().slice(0,10)}`;
+
+    // Stem scale: scaleY from 0.18 -> 1.0
+    const stemScale = 0.18 + growth * 0.82;
+    stem.style.transformOrigin = '0 0';
+    stem.style.transition = 'transform 900ms cubic-bezier(.2,.9,.3,1)';
+    stem.style.transform = `scaleY(${stemScale})`;
+
+    // Leaves opacity & scale
+    const leafOpacity = Math.min(1, Math.max(0, (growth - 0.12) / 0.6)); // become visible earlier
+    [leafL, leafR].forEach(path => {
+      path.style.transition = 'opacity 850ms ease, transform 900ms cubic-bezier(.2,.9,.3,1)';
+      path.style.opacity = leafOpacity;
+    });
+    leafLeftGroup.style.transform = `translate(-6, ${-120 - (1-growth)*20}) rotate(-28) scale(${0.6 + growth*0.6})`;
+    leafRightGroup.style.transform = `translate(16, ${-160 - (1-growth)*30}) rotate(30) scale(${0.6 + growth*0.6})`;
+
+    // Bud -> petal transition
+    // seed shrinks as petals grow
+    seed.style.transition = 'opacity 600ms ease, transform 700ms ease';
+    seed.style.opacity = (growth < 0.18) ? 1 : Math.max(0, 1 - (growth-0.18)*4);
+    seed.style.transform = `scale(${1 - growth*0.6})`;
+
+    // petals: appear from scale 0.2->1 and opacity 0->1 around growth > 0.4
+    const petalProgress = (growth - 0.38) / 0.62; // 0..1
+    if(petalProgress > 0){
+      petals.style.opacity = Math.min(1, petalProgress);
+      petals.style.transform = `scale(${0.2 + Math.max(0,petalProgress)*0.8})`;
+      petals.style.transition = 'opacity 900ms ease, transform 900ms cubic-bezier(.2,.9,.3,1)';
+    } else {
+      petals.style.opacity = 0;
+      petals.style.transform = 'scale(0.2)';
+    }
+
+    // center dot grows near final
+    const centerR = Math.max(0, (growth - 0.55) * 6); // grows to about r=3.0..4
+    center.style.transition = 'r 700ms ease, opacity 700ms ease';
+    center.setAttribute('r', centerR.toString());
+    center.style.opacity = centerR > 0.2 ? 1 : 0;
+
+    // subtle pop when new day increments (handled externally)
+  }
+
+  // compute today-based dayIndex
+  function currentDayIndex(){
+    const startStr = localStorage.getItem('bloom_start') || DEFAULT_START;
+    const startD = toDateYMD(startStr);
+    const today = new Date();
+    const days = daysBetweenUTC(startD, today);
+    return Math.max(0, Math.min(MAX_DAYS, days));
+  }
+
+  // init UI values
+  function init(){
+    const saved = loadStartDate();
+    startInput.value = saved;
+    update();
+  }
+
+  // update from computed dayIndex (normal flow)
+  function update(){
+    const dayIndex = currentDayIndex();
+    updateVisuals(dayIndex);
+  }
+
+  // simulate day changes for testing
+  let simulatedOffset = 0; // days added for simulation only
+  function updateSimulated(){
+    // when simulation active, compute based on DEFAULT_START + simulatedOffset
+    const startStr = localStorage.getItem('bloom_start') || DEFAULT_START;
+    const start = toDateYMD(startStr);
+    const d = new Date(Date.UTC(start.getUTCFullYear(),start.getUTCMonth(),start.getUTCDate()));
+    d.setUTCDate(d.getUTCDate() + simulatedOffset);
+    const today = d;
+    const days = daysBetweenUTC(start, today);
+    const idx = Math.max(0, Math.min(MAX_DAYS, days));
+    updateVisuals(idx);
+  }
+
+  // connect controls
+  saveBtn.addEventListener('click', () => {
+    const v = startInput.value;
+    if(!v){ alert('Pick a date first'); return; }
+    saveStartDate(v);
+    simulatedOffset = 0;
+    update();
+  });
+
+  prevDayBtn.addEventListener('click', () => {
+    simulatedOffset = Math.max(simulatedOffset - 1, -365);
+    updateSimulated();
+  });
+  nextDayBtn.addEventListener('click', () => {
+    simulatedOffset = Math.min(simulatedOffset + 1, 365);
+    updateSimulated();
+  });
+  resetBtn.addEventListener('click', () => {
+    simulatedOffset = 0;
+    update();
+  });
+
+  // when page loads, ensure localStorage has default if nothing
+  if(!localStorage.getItem('bloom_start')) localStorage.setItem('bloom_start', DEFAULT_START);
+
+  init();
+
+  // update daily at midnight (optional): recalc every minute to be safe
+  setInterval(() => {
+    if(simulatedOffset === 0) update();
+  }, 60*1000);
+
+})();
+</script>
+</body>
+</html>
